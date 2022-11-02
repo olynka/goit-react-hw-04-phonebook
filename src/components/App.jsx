@@ -1,61 +1,139 @@
-import {useState } from "react"
-import SearchbarForm from "./Searchbar/Searchbar"
-import { ImageGallery } from "./ImageGallery/ImageGallery"
-import { fetchImage } from "./Fetch/Fetch"
-import { Button } from "./Button/Button"
-import { toast, ToastContainer } from "react-toastify";
-import { useEffect } from "react"
+import { Component } from 'react';
+  import ContactList from './ContactList/ContactList';
+import { nanoid } from 'nanoid';
+import ContactForm from './Form/Form';
+import Filter from './filter/filter';
+import { Block, Totle } from './AppStyled';
+import Notification from './Notification/Notification';
+
+const defaultContacts = [
+  { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
+  { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
+  { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
+  { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
+]
 
 
+export class App extends Component  {
+state = {
+  contacts: defaultContacts,
+    filter: '',
+  }
 
-export function App() {
-  const [searchName,setSearchName] = useState('');
-  const [ page,setUseState] = useState(1);
-  const [isLoading,setIsLoading] = useState(false);
-  const [images,setImages] = useState([]);
-   const [ per_page,setPer_page] = useState(12);
+
+  componentDidUpdate(prevProps, preyState) {
+
+    if (this.state.contacts !== preyState.contacts) {
+      console.log('обновилося');
+      localStorage.setItem('contacts',JSON.stringify(this.state.contacts))
+    }
+  }
+
+  componentDidMount() {
+    const savedContacts = JSON.parse(localStorage.getItem( 'contacts'));
+    if (savedContacts) {
+      this.setState({ contacts: savedContacts });
+    }
+  }
+
+   duplicateContact = (name) => {
+    const { contacts } = this.state;
+    const normalizedName = name.toLowerCase();
+
+    return contacts.find(item => item.name.toLowerCase() === normalizedName);
+  }
+
+ deleteContact = (contactId) => {
+    this.setState(prevState => ({
+      contacts: prevState.contacts.filter(contact => contact.id !== contactId)
+    }))
+  }
+
+  addContact = ({ name, number }) => {  
   
+    
+    if (this.duplicateContact(name)) {
+      return alert(`"${name}" is already in your Phonebook`);
+    };
 
-  const hendleFormSubmit = searchName => {
-    setSearchName(searchName);
-    setImages([]);
-        setUseState(1)
-   }
- 
-    const loadMore = () => {
-      setUseState(prevState => prevState + 1)
-      
-  };
-
-  useEffect(() => {
-    if (searchName === '') {
-      return;
+      const contact = {
+      id: nanoid(4),
+      name: name,
+      number: number
     }
 
-    fetchImage(page, searchName).then(data => {
-            return (
-              data.hits.length === 0
-                ? toast.error('Oops! We did not find any images matching your request. Please try again.')
-                : setImages(prevState => [...prevState, ...data.hits],
-                 setIsLoading (false),
-                  )
-                  )
-          })
-          .catch(error => console.log(error))
-      .finally(() => setIsLoading(false));
-         
-        },[page,searchName])
+    this.setState(({contacts}) => ({
+      contacts: [...contacts, contact]
+    }));  
+  }
   
+  
+ changeFilter = (e) => {
+    this.setState({ filter: e.currentTarget.value });
+  }
+    
+  getVisibleContacts = () => {
+    const { contacts, filter } = this.state;
+    const normalizedFilter = filter.toLowerCase();
+  
+    return contacts.filter(contact => contact.name.toLowerCase().includes(normalizedFilter));
+  }
 
   
+
+  render() {
+const { filter, contacts } = this.state;
+    const addContact = this.addContact; 
+    const deleteContact = this.deleteContact;
+    const changeFilter = this.changeFilter;  
+    const visibleContacts = this.getVisibleContacts();
+   
 
   return (
-     <div>
-        <SearchbarForm onSubmit={hendleFormSubmit}/>
-       <ToastContainer autoClose={2000} />
-        <ImageGallery images={images} />
-     { images.length >=per_page && <Button handleClick={loadMore} />}
-         </div>
-  )
+    <>
+      <Block>
+        <Totle>Phonebook</Totle>
+        <ContactForm onSubmit={addContact} />
+        {contacts.length === 0?<Notification />:<><Filter value={filter} onChange={changeFilter} />
+      <ContactList items={visibleContacts} onDeleteContact={deleteContact} /></>}
+      
+        {/* <Filter value={filter} onChange={changeFilter} />
+      <ContactList items={visibleContacts} onDeleteContact={deleteContact} /> */}
 
-}
+     
+</Block>
+     </>
+  )
+}};
+
+
+
+
+
+
+
+
+
+
+
+
+
+// export class App extends Component  { 
+//   state = {
+//      contacts: defaultContacts,
+//     filter: ''
+//   };
+//   render() {
+//  const { contacts } = this;
+//     return (
+//       <section>
+//         <div>
+//           <LoginForm/>
+//           <ContactList list={contacts} />
+//         </div>
+//       </section>
+      
+//     );
+//   }
+// }
+
